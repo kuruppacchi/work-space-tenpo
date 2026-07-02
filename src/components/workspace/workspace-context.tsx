@@ -57,6 +57,14 @@ type WorkspaceContextValue = {
   selectTask: (taskId?: string) => void;
   goToStep: (step: "issue" | "cause" | "measure" | "task") => void;
   reload: () => Promise<void>;
+  upsertIssue: (issue: Issue) => void;
+  removeIssue: (id: string) => void;
+  upsertCause: (cause: Cause) => void;
+  removeCause: (id: string) => void;
+  upsertMeasure: (measure: Measure) => void;
+  removeMeasure: (id: string) => void;
+  upsertTask: (task: TaskWithAssignee) => void;
+  removeTask: (id: string) => void;
 };
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
@@ -90,6 +98,21 @@ function toFetchSelection(selection: WorkspaceSelection): WorkspaceSelection {
         : undefined,
     step: selection.step,
   };
+}
+
+function sortByUpdatedAt<T extends { updatedAt: Date }>(items: T[]) {
+  return [...items].sort(
+    (a, b) =>
+      new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+  );
+}
+
+function mergeById<T extends { id: string }>(current: T[], incoming: T[]) {
+  const merged = new Map(current.map((item) => [item.id, item]));
+  for (const item of incoming) {
+    merged.set(item.id, item);
+  }
+  return [...merged.values()];
 }
 
 type CacheRef = {
@@ -590,6 +613,74 @@ export function WorkspaceProvider({
     }
   }, [storeId, syncUrl]);
 
+  const upsertIssue = useCallback((issue: Issue) => {
+    setIssues((prev) => sortByUpdatedAt(mergeById(prev, [issue])));
+  }, []);
+
+  const removeIssue = useCallback((id: string) => {
+    setIssues((prev) => prev.filter((issue) => issue.id !== id));
+    cacheRef.current.causes.delete(id);
+  }, []);
+
+  const upsertCause = useCallback((cause: Cause) => {
+    setCauses((prev) => {
+      const next = sortByUpdatedAt(mergeById(prev, [cause]));
+      cacheRef.current.causes.set(cause.issueId, next);
+      return next;
+    });
+  }, []);
+
+  const removeCause = useCallback((id: string) => {
+    setCauses((prev) => {
+      const next = prev.filter((cause) => cause.id !== id);
+      const issueId = selectionRef.current.issueId;
+      if (issueId && issueId !== "new") {
+        cacheRef.current.causes.set(issueId, next);
+      }
+      return next;
+    });
+    cacheRef.current.measures.delete(id);
+  }, []);
+
+  const upsertMeasure = useCallback((measure: Measure) => {
+    setMeasures((prev) => {
+      const next = sortByUpdatedAt(mergeById(prev, [measure]));
+      cacheRef.current.measures.set(measure.causeId, next);
+      return next;
+    });
+  }, []);
+
+  const removeMeasure = useCallback((id: string) => {
+    setMeasures((prev) => {
+      const next = prev.filter((measure) => measure.id !== id);
+      const causeId = selectionRef.current.causeId;
+      if (causeId && causeId !== "new") {
+        cacheRef.current.measures.set(causeId, next);
+      }
+      return next;
+    });
+    cacheRef.current.tasks.delete(id);
+  }, []);
+
+  const upsertTask = useCallback((task: TaskWithAssignee) => {
+    setTasks((prev) => {
+      const next = sortByUpdatedAt(mergeById(prev, [task]));
+      cacheRef.current.tasks.set(task.measureId, next);
+      return next;
+    });
+  }, []);
+
+  const removeTask = useCallback((id: string) => {
+    setTasks((prev) => {
+      const next = prev.filter((task) => task.id !== id);
+      const measureId = selectionRef.current.measureId;
+      if (measureId && measureId !== "new") {
+        cacheRef.current.tasks.set(measureId, next);
+      }
+      return next;
+    });
+  }, []);
+
   useEffect(() => {
     if (isInternalNavRef.current) {
       isInternalNavRef.current = false;
@@ -620,7 +711,7 @@ export function WorkspaceProvider({
   }, [searchParams]);
 
   useEffect(() => {
-    setIssues(initialIssues);
+    setIssues((prev) => sortByUpdatedAt(mergeById(prev, initialIssues)));
     setAssignees(initialAssignees);
     cacheRef.current.causes.clear();
     cacheRef.current.measures.clear();
@@ -634,9 +725,9 @@ export function WorkspaceProvider({
     if (initialSelection.measureId && initialSelection.measureId !== "new") {
       cacheRef.current.tasks.set(initialSelection.measureId, initialTasks);
     }
-    setCauses(initialCauses);
-    setMeasures(initialMeasures);
-    setTasks(initialTasks);
+    setCauses((prev) => sortByUpdatedAt(mergeById(prev, initialCauses)));
+    setMeasures((prev) => sortByUpdatedAt(mergeById(prev, initialMeasures)));
+    setTasks((prev) => sortByUpdatedAt(mergeById(prev, initialTasks)));
     setSelection((current) =>
       isNewSelection(current) ? current : initialSelection,
     );
@@ -668,6 +759,14 @@ export function WorkspaceProvider({
         selectTask,
         goToStep,
         reload,
+        upsertIssue,
+        removeIssue,
+        upsertCause,
+        removeCause,
+        upsertMeasure,
+        removeMeasure,
+        upsertTask,
+        removeTask,
       }}
     >
       {children}

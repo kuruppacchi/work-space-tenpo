@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { UserButton } from "@neondatabase/auth-ui";
 import type { Store } from "@/lib/db/schema";
 import type { CurrentUser } from "@/lib/permissions";
@@ -14,20 +14,35 @@ type AppHeaderProps = {
 
 export function AppHeader({ user, stores, currentStoreId }: AppHeaderProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const isAdmin = user.globalRole === "admin";
 
+  const queryString = searchParams.toString();
+  const workspaceHome =
+    pathname === "/" && queryString
+      ? `/?${queryString}`
+      : `/?storeId=${currentStoreId}`;
+
   function handleStoreChange(storeId: string) {
-    const params = new URLSearchParams();
+    const params = new URLSearchParams(searchParams.toString());
     params.set("storeId", storeId);
+    params.delete("issueId");
+    params.delete("causeId");
+    params.delete("measureId");
+    params.delete("taskId");
     router.push(`/?${params.toString()}`);
   }
 
-  const settingsHref = `/stores/${currentStoreId}/settings`;
+  const settingsHref = `/stores/${currentStoreId}/settings?returnTo=${encodeURIComponent(workspaceHome)}`;
 
   return (
     <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b-2 border-zinc-300 bg-white px-4 py-3 shadow-md">
       <div className="flex flex-wrap items-center gap-4">
-        <Link href="/" className="text-lg font-bold tracking-tight text-zinc-900">
+        <Link
+          href={workspaceHome}
+          className="text-lg font-bold tracking-tight text-zinc-900"
+        >
           店舗改善WS
         </Link>
         {isAdmin ? (
@@ -51,7 +66,7 @@ export function AppHeader({ user, stores, currentStoreId }: AppHeaderProps) {
 
       <nav className="flex items-center gap-4 text-sm">
         <Link
-          href="/"
+          href={workspaceHome}
           className="font-medium text-zinc-600 transition hover:text-zinc-900"
         >
           ワークスペース

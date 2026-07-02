@@ -33,7 +33,8 @@ export function TasksPane({
     assignees,
     selection,
     selectTask,
-    reload,
+    upsertTask,
+    removeTask,
   } = useWorkspace();
   const issueId = selection.issueId;
   const causeId = selection.causeId;
@@ -107,6 +108,14 @@ export function TasksPane({
   const activeCauseId = causeId;
   const activeMeasureId = measureId;
 
+  function toTaskWithAssignee(task: Task) {
+    return {
+      ...task,
+      assigneeName:
+        assignees.find((a) => a.id === task.assigneeId)?.name ?? null,
+    };
+  }
+
   function handleNew() {
     loadForm();
     selectTask("new");
@@ -132,15 +141,15 @@ export function TasksPane({
       };
 
       if (selectedTaskId && selectedTaskId !== "new") {
-        await updateTask(selectedTaskId, storeId, payload);
-        await reload();
+        const updated = await updateTask(selectedTaskId, storeId, payload);
+        upsertTask(toTaskWithAssignee(updated));
         if (continueAdding) {
           loadForm();
           selectTask("new");
         }
       } else {
         const created = await createTask(activeMeasureId, storeId, payload);
-        await reload();
+        upsertTask(toTaskWithAssignee(created));
         if (continueAdding) {
           loadForm();
           selectTask("new");
@@ -156,7 +165,9 @@ export function TasksPane({
     if (!window.confirm("このタスクを削除しますか？")) return;
     startTransition(async () => {
       await deleteTask(selectedTaskId, storeId);
-      await reload();
+      const remaining = tasks.filter((t) => t.id !== selectedTaskId);
+      removeTask(selectedTaskId);
+      selectTask(remaining[0]?.id);
     });
   }
 

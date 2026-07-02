@@ -26,7 +26,8 @@ import {
 import { useWorkspace } from "./workspace-context";
 
 export function IssuesPane() {
-  const { storeId, issues, selection, selectIssue, reload } = useWorkspace();
+  const { storeId, issues, selection, selectIssue, upsertIssue, removeIssue } =
+    useWorkspace();
   const selectedIssueId = selection.issueId;
   const [isPending, startTransition] = useTransition();
   const selected = issues.find((i) => i.id === selectedIssueId);
@@ -82,10 +83,11 @@ export function IssuesPane() {
       };
 
       if (selectedIssueId && selectedIssueId !== "new") {
-        await updateIssue(selectedIssueId, storeId, payload);
-        reload();
+        const updated = await updateIssue(selectedIssueId, storeId, payload);
+        upsertIssue(updated);
       } else {
         const created = await createIssue(storeId, payload);
+        upsertIssue(created);
         selectIssue(created.id);
       }
     });
@@ -103,8 +105,9 @@ export function IssuesPane() {
 
     startTransition(async () => {
       await deleteIssue(selectedIssueId, storeId);
-      reload();
-      selectIssue(issues[0]?.id ?? "new");
+      const remaining = issues.filter((i) => i.id !== selectedIssueId);
+      removeIssue(selectedIssueId);
+      selectIssue(remaining[0]?.id ?? "new");
     });
   }
 

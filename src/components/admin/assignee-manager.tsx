@@ -147,9 +147,18 @@ function AssigneeRow({
   );
 }
 
-export function SettingsBackLink() {
+export function SettingsBackLink({
+  storeId,
+  returnTo,
+}: {
+  storeId: string;
+  returnTo?: string;
+}) {
+  const href =
+    returnTo && returnTo.startsWith("/") ? returnTo : `/?storeId=${storeId}`;
+
   return (
-    <Link href="/" className="text-sm text-blue-600 hover:underline">
+    <Link href={href} className="text-sm text-blue-600 hover:underline">
       ← ワークスペースに戻る
     </Link>
   );

@@ -33,7 +33,8 @@ export function CausesPane({ loading = false }: { loading?: boolean }) {
     causes,
     selection,
     selectCause,
-    reload,
+    upsertCause,
+    removeCause,
   } = useWorkspace();
   const issueId = selection.issueId;
   const selectedCauseId = selection.causeId;
@@ -97,15 +98,15 @@ export function CausesPane({ loading = false }: { loading?: boolean }) {
       };
 
       if (selectedCauseId && selectedCauseId !== "new") {
-        await updateCause(selectedCauseId, storeId, payload);
-        reload();
+        const updated = await updateCause(selectedCauseId, storeId, payload);
+        upsertCause(updated);
         if (continueAdding) {
           loadForm();
           selectCause("new");
         }
       } else {
         const created = await createCause(activeIssueId, storeId, payload);
-        reload();
+        upsertCause(created);
         if (continueAdding) {
           loadForm();
           selectCause("new");
@@ -127,8 +128,9 @@ export function CausesPane({ loading = false }: { loading?: boolean }) {
     }
     startTransition(async () => {
       await deleteCause(selectedCauseId, storeId);
-      reload();
-      selectCause(causes[0]?.id ?? "new");
+      const remaining = causes.filter((c) => c.id !== selectedCauseId);
+      removeCause(selectedCauseId);
+      selectCause(remaining[0]?.id ?? "new");
     });
   }
 

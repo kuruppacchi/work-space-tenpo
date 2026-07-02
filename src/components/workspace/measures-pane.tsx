@@ -33,7 +33,8 @@ export function MeasuresPane({ loading = false }: { loading?: boolean }) {
     measures,
     selection,
     selectMeasure,
-    reload,
+    upsertMeasure,
+    removeMeasure,
   } = useWorkspace();
   const issueId = selection.issueId;
   const causeId = selection.causeId;
@@ -111,15 +112,15 @@ export function MeasuresPane({ loading = false }: { loading?: boolean }) {
       };
 
       if (selectedMeasureId && selectedMeasureId !== "new") {
-        await updateMeasure(selectedMeasureId, storeId, payload);
-        reload();
+        const updated = await updateMeasure(selectedMeasureId, storeId, payload);
+        upsertMeasure(updated);
         if (continueAdding) {
           loadForm();
           selectMeasure("new");
         }
       } else {
         const created = await createMeasure(activeCauseId, storeId, payload);
-        reload();
+        upsertMeasure(created);
         if (continueAdding) {
           loadForm();
           selectMeasure("new");
@@ -141,8 +142,9 @@ export function MeasuresPane({ loading = false }: { loading?: boolean }) {
     }
     startTransition(async () => {
       await deleteMeasure(selectedMeasureId, storeId);
-      reload();
-      selectMeasure(measures[0]?.id ?? "new");
+      const remaining = measures.filter((m) => m.id !== selectedMeasureId);
+      removeMeasure(selectedMeasureId);
+      selectMeasure(remaining[0]?.id ?? "new");
     });
   }
 

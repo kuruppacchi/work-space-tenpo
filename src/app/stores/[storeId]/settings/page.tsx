@@ -16,10 +16,15 @@ export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: Promise<{ storeId: string }>;
+  searchParams: Promise<{ returnTo?: string }>;
 };
 
-export default async function StoreSettingsPage({ params }: PageProps) {
+export default async function StoreSettingsPage({
+  params,
+  searchParams,
+}: PageProps) {
   const { storeId } = await params;
+  const { returnTo } = await searchParams;
   const user = await getCurrentAppUser();
   if (!user) redirect("/no-access");
 
@@ -39,7 +44,7 @@ export default async function StoreSettingsPage({ params }: PageProps) {
 
   return (
     <main className="mx-auto max-w-2xl flex-1 p-6">
-      <SettingsBackLink />
+      <SettingsBackLink storeId={storeId} returnTo={returnTo} />
       <h1 className="mt-4 text-2xl font-bold tracking-tight text-zinc-900">
         {store?.name ?? "店舗"} — 担当者設定
       </h1>
