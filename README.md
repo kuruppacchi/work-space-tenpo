@@ -1,36 +1,74 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 店舗改善ワークスペース
 
-## Getting Started
+店舗ごとの改善活動（課題 → 原因 → 対策 → タスク）を管理する4ペイン型ワークスペース。
 
-First, run the development server:
+## 技術スタック
+
+- Next.js 16 (App Router)
+- Neon PostgreSQL + Drizzle ORM
+- Neon Auth（招待制）
+- Vercel
+
+## セットアップ
+
+### 1. Neon プロジェクト
+
+1. [Neon Console](https://console.neon.tech) でプロジェクトを作成
+2. **Neon Auth** を有効化
+3. `DATABASE_URL`（Pooled）と `NEON_AUTH_BASE_URL` を取得
+
+### 2. 環境変数
+
+```bash
+cp .env.example .env
+```
+
+`.env` を編集:
+
+```env
+DATABASE_URL="postgresql://..."
+NEON_AUTH_BASE_URL="https://ep-xxx.neonauth.../neondb/auth"
+NEON_AUTH_COOKIE_SECRET="openssl rand -base64 32 で生成"
+```
+
+### 3. DB マイグレーション & シード
+
+```bash
+npm install
+npm run db:push    # または npm run db:migrate
+npm run db:seed
+```
+
+### 4. 開発サーバー
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Vercel デプロイ
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. GitHub リポジトリを Vercel にインポート
+2. 環境変数を設定:
+   - `DATABASE_URL`
+   - `NEON_AUTH_BASE_URL`
+   - `NEON_AUTH_COOKIE_SECRET`
+3. Neon Auth の Allowed Redirect URLs に Vercel の URL を追加
+4. デプロイ後、`npm run db:push` と `npm run db:seed` を本番 DB に対して実行
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 初期ユーザー（シード）
 
-## Learn More
+| メール | ロール | 店舗 |
+|--------|--------|------|
+| nishida@example.com | admin | 全店舗 |
+| wso@example.com | manager | WSO |
+| momochi@example.com | manager | ももち浜 |
+| ... | ... | ... |
 
-To learn more about Next.js, take a look at the following resources:
+Neon Auth から各メールアドレスを招待し、初回ログインで `app_users` と自動紐づけされます。
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 画面
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `/` — 4ペイン ワークスペース（デスクトップ）/ ステップ遷移（iPad・スマホ）
+- `/stores/[storeId]/settings` — 担当者マスタ
+- `/admin/users` — ユーザー管理（admin のみ）
+- `/admin/stores` — 店舗・所属管理（admin のみ）

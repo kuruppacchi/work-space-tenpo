@@ -1,8 +1,16 @@
 @import "tailwindcss";
+@import "@neondatabase/auth-ui/tailwind";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #e4e4e7;
+  --foreground: #18181b;
+  --surface: #ffffff;
+  --surface-muted: #f4f4f5;
+  --border: #e4e4e7;
+  --border-strong: #d4d4d8;
+  --input-bg: #ffffff;
+  --label: #3f3f46;
+  --muted: #71717a;
 }
 
 @theme inline {
@@ -12,15 +20,8 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
